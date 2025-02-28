@@ -2,6 +2,7 @@ from enum import Enum
 
 
 class TokenType(Enum):
+    LOWEST = 'LOWEST'
     ILLEGAL = 'ILLEGAL'
     EOF = 'EOF'
     # 标识符 + 字面量

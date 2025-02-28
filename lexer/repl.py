@@ -1,14 +1,17 @@
 from lexer import Lexer
-from mytoken import TokenType
+from lexer.token import TokenType
 
-print("Lexer REPL")
 
-while True:
-    code = input(">>> ")
-    l = Lexer(code)
-    while True:
-        token = l.next_token()
-        if token.type == TokenType.EOF:
-            break
-        else:
-            print(f"Token:{token.type.value}  Literal:{token.literal}")
+class REPL():
+    def __init__(self):...
+    def run(self) -> None:
+        print("Lexer REPL")
+
+        while True:
+            code = input(">>> ")
+            l = Lexer(code)
+            while True:
+                token = l.next_token()
+                if token.type == TokenType.EOF:
+                    break
+                print(f"Token:{token.type.value}  Literal:{token.literal}")

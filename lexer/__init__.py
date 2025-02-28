@@ -1,6 +1,6 @@
-from mytoken import TokenType
-from mytoken import Token
-from mytoken import lookup_ident
+from lexer.token import TokenType
+from lexer.token import Token
+from lexer.token import lookup_ident
 
 
 def is_letter(ch: str) -> bool:
