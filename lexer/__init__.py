@@ -69,7 +69,7 @@ class Lexer():
             self.read_char()
     
 
-    def peek_char(self) -> bytes:
+    def peek_char(self) -> str:
         """“窥探”下一个字符"""
         if self.__back_idx >= len(self.__input):
             return ''

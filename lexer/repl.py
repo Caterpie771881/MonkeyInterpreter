@@ -3,8 +3,11 @@ from lexer.token import TokenType
 
 
 class REPL():
+    """read-eval-print loop for lexer"""
     def __init__(self):...
+
     def run(self) -> None:
+        """运行 REPL"""
         print("Lexer REPL")
 
         while True:

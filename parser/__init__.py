@@ -26,6 +26,7 @@ token_level: dict[TokenType, ExpLevel] = {
     TokenType.MINUS:    ExpLevel.SUM,
     TokenType.SLASH:    ExpLevel.PRODUCT,
     TokenType.ASTERISK: ExpLevel.PRODUCT,
+    TokenType.LPAREN:   ExpLevel.CALL,
 }
 """符号的优先级表"""
 
@@ -40,8 +41,8 @@ class Parser():
     """语法分析器"""
     def __init__(self, lexer: Lexer):
         self.lexer = lexer
-        self.cur_tok: Token = None
-        self.peek_tok: Token = None
+        self.cur_tok: Token = Token(TokenType.EOF, '')
+        self.peek_tok: Token = Token(TokenType.EOF, '')
         self.errors: list[str] = []
         self.prefix_parse_funcs: dict[TokenType, nuds] = {}
         self.infix_parse_funcs: dict[TokenType, leds] = {}
@@ -49,34 +50,32 @@ class Parser():
         self.next_token()
         self.next_token()
         # 注册表达式解析函数
-        self.register_prefix(TokenType.IDENT, self.parse_identifier)
-        self.register_prefix(TokenType.INT, self.parse_integer)
-        self.register_prefix(TokenType.MINUS, self.parse_prefix_expression)
-        self.register_prefix(TokenType.BANG, self.parse_prefix_expression)
-        self.register_infix(TokenType.PLUS, self.parse_infix_expression)
-        self.register_infix(TokenType.MINUS, self.parse_infix_expression)
-        self.register_infix(TokenType.SLASH, self.parse_infix_expression)
-        self.register_infix(TokenType.ASTERISK, self.parse_infix_expression)
-        self.register_infix(TokenType.EQ, self.parse_infix_expression)
-        self.register_infix(TokenType.NOT_EQ, self.parse_infix_expression)
-        self.register_infix(TokenType.LT, self.parse_infix_expression)
-        self.register_infix(TokenType.GT, self.parse_infix_expression)
+        self.register_nuds(TokenType.IDENT,     self.parse_identifier)
+        self.register_nuds(TokenType.INT,       self.parse_integer)
+        self.register_nuds(TokenType.MINUS,     self.parse_prefix_expression)
+        self.register_nuds(TokenType.BANG,      self.parse_prefix_expression)
+        self.register_nuds(TokenType.TRUE,      self.parse_boolean)
+        self.register_nuds(TokenType.FALSE,     self.parse_boolean)
+        self.register_nuds(TokenType.IF,        self.parse_if_expression)
+        self.register_nuds(TokenType.LPAREN,    self.parse_grouped_expression)
+        self.register_nuds(TokenType.FUNCTION,  self.parse_func_literal)
+        self.register_leds(TokenType.PLUS,      self.parse_infix_expression)
+        self.register_leds(TokenType.MINUS,     self.parse_infix_expression)
+        self.register_leds(TokenType.SLASH,     self.parse_infix_expression)
+        self.register_leds(TokenType.ASTERISK,  self.parse_infix_expression)
+        self.register_leds(TokenType.EQ,        self.parse_infix_expression)
+        self.register_leds(TokenType.NOT_EQ,    self.parse_infix_expression)
+        self.register_leds(TokenType.LT,        self.parse_infix_expression)
+        self.register_leds(TokenType.GT,        self.parse_infix_expression)
+        self.register_leds(TokenType.LPAREN,    self.parse_call_expression)
 
 
-    def register_prefix(
-            self,
-            tt: TokenType,
-            fn: nuds
-        ) -> None:
+    def register_nuds(self, tt: TokenType, fn: nuds) -> None:
         """为指定 token 注册对应的前缀解析方法"""
         self.prefix_parse_funcs[tt] = fn
     
 
-    def register_infix(
-            self,
-            tt: TokenType,
-            fn: leds
-        ) -> None:
+    def register_leds(self, tt: TokenType, fn: leds) -> None:
         """为指定 token 注册对应的中缀解析方法"""
         self.infix_parse_funcs[tt] = fn
 
@@ -86,8 +85,8 @@ class Parser():
         self.errors.append(msg)
     
 
-    def noPrefixParseFnError(self, tt: TokenType) -> None:
-        msg = f"no prefix parse function for {tt.value} found"
+    def noNudsFnError(self, tt: TokenType) -> None:
+        msg = f"no nuds function for {tt.value} found"
         self.errors.append(msg)
 
 
@@ -118,7 +117,7 @@ class Parser():
 
     def parse_program(self) -> ast.Program:
         """parser 的核心, 使用递归下降生成一棵以 Program 为根节点的 AST"""
-        program = ast.Program([])
+        program = ast.Program()
         
         while self.cur_tok.type != TokenType.EOF:
             stmt = self.parse_statement()
@@ -155,14 +154,14 @@ class Parser():
         """解析 表达式 节点"""
         prefix = self.prefix_parse_funcs.get(self.cur_tok.type)
         if not prefix:
-            self.noPrefixParseFnError(self.cur_tok.type)
+            self.noNudsFnError(self.cur_tok.type)
             return None
         leftExp = prefix()
 
         while (
             self.peek_tok.type != TokenType.SEMICOLON
             and level < self.get_peek_precedence()
-            ):
+        ):
             infix = self.infix_parse_funcs.get(self.peek_tok.type)
             if not infix:
                 return leftExp
@@ -187,11 +186,13 @@ class Parser():
         if not self.expect_peek(TokenType.ASSIGN):
             return None
 
-        # TODO: 跳过对表达式的处理, 直到遇见分号
-        while self.cur_tok.type != TokenType.SEMICOLON:
+        self.next_token()
+
+        stmt_value = self.parse_expression(ExpLevel.LOWEST)
+
+        if self.peek_tok.type == TokenType.SEMICOLON:
             self.next_token()
 
-        stmt_value = None
         return ast.LetStatement(stmt_token, stmt_name, stmt_value)
     
 
@@ -201,11 +202,11 @@ class Parser():
 
         self.next_token()
 
-        # TODO: 跳过对表达式的处理, 直到遇见分号
-        while self.cur_tok.type != TokenType.SEMICOLON:
+        stmt_return_value = self.parse_expression(ExpLevel.LOWEST)
+
+        if self.peek_tok.type == TokenType.SEMICOLON:
             self.next_token()
 
-        stmt_return_value = None
         return ast.ReturnStatement(stmt_token, stmt_return_value)
 
 
@@ -228,7 +229,7 @@ class Parser():
 
 
     def parse_prefix_expression(self) -> ast.Expression:
-        """解析前缀表达式节点"""
+        """解析前缀运算符节点"""
         exp_token = self.cur_tok
         exp_operator = self.cur_tok.literal
 
@@ -240,7 +241,7 @@ class Parser():
 
 
     def parse_infix_expression(self, left: ast.Expression) -> ast.Expression:
-        """解析中缀表达式节点"""
+        """解析中缀运算符节点"""
         exp_token = self.cur_tok
         exp_operator = self.cur_tok.literal
         exp_left = left
@@ -255,3 +256,151 @@ class Parser():
             left=exp_left,
             right=exp_right
         )
+
+
+    def parse_boolean(self) -> ast.Expression:
+        """解析布尔运算符节点"""
+        exp_token = self.cur_tok
+
+        token_type = exp_token.type
+        if (
+            token_type != TokenType.TRUE
+            and token_type != TokenType.FALSE
+        ):
+            msg = f"expected current token to be TRUE or FALSE, got {token_type.name} instead"
+            self.errors.append(msg)
+            return None
+
+        exp_value = token_type == TokenType.TRUE
+        
+        return ast.Boolean(exp_token, exp_value)
+    
+
+    def parse_grouped_expression(self) -> ast.Expression:
+        """解析分组表达式"""
+        self.next_token()
+
+        exp = self.parse_expression(ExpLevel.LOWEST)
+
+        if not self.expect_peek(TokenType.RPAREN):
+            return None
+        
+        return exp
+    
+
+    def parse_block_statement(self) -> ast.Statement:
+        """解析块语句"""
+        block = ast.BlockStatement(self.cur_tok)
+        
+        self.next_token()
+
+        while (
+            self.cur_tok.type != TokenType.RBRACE
+            and self.cur_tok.type != TokenType.EOF
+        ):
+            stmt = self.parse_statement()
+            if stmt:
+                block.statements.append(stmt)
+            self.next_token()
+        
+        return block
+
+
+    def parse_if_expression(self) -> ast.Expression:
+        """解析 IF 表达式"""
+        exp = ast.IfExpression(self.cur_tok)
+
+        if not self.expect_peek(TokenType.LPAREN):
+            return None
+        
+        self.next_token()
+        exp.condition = self.parse_expression(ExpLevel.LOWEST)
+
+        if not self.expect_peek(TokenType.RPAREN):
+            return None
+        if not self.expect_peek(TokenType.LBRACE):
+            return None
+        
+        exp.consequence = self.parse_block_statement()
+
+        if self.peek_tok.type == TokenType.ELSE:
+            self.next_token()
+            if not self.expect_peek(TokenType.LBRACE):
+                return None
+            exp.alternative = self.parse_block_statement()
+
+        return exp
+
+
+    def parse_func_literal(self) -> ast.Expression:
+        """解析函数字面量"""
+        exp = ast.FunctionLiteral(self.cur_tok)
+
+        if not self.expect_peek(TokenType.LPAREN):
+            return None
+        
+        exp.parameters = self.parse_func_parameters()
+
+        if not self.expect_peek(TokenType.LBRACE):
+            return None
+        
+        exp.body = self.parse_block_statement()
+
+        return exp
+    
+
+    def parse_func_parameters(self) -> list[ast.Identifier]:
+        """解析函数字面量参数"""
+        self.next_token()
+
+        parameters: list[ast.Identifier] = []
+
+        # 零参数
+        if self.cur_tok.type == TokenType.RPAREN:
+            return parameters
+        # 一参数
+        p = ast.Identifier(self.cur_tok, self.cur_tok.literal)
+        parameters.append(p)
+        # 多参数
+        while self.peek_tok.type == TokenType.COMMA:
+            self.next_token()
+            self.next_token()
+            p = ast.Identifier(self.cur_tok, self.cur_tok.literal)
+            parameters.append(p)
+        
+        if not self.expect_peek(TokenType.RPAREN):
+            return []
+        
+        return parameters
+
+
+    def parse_call_expression(self, function: ast.Expression) -> ast.Expression:
+        """解析调用表达式"""
+        exp = ast.CallExpression(self.cur_tok, function)
+        exp.arguments = self.parse_call_arguments()
+        return exp
+    
+
+    def parse_call_arguments(self) -> list[ast.Expression]:
+        """解析调用表达式的参数列表"""
+        self.next_token()
+
+        arguments: list[ast.Expression] = []
+
+        # 零参数
+        if self.cur_tok.type == TokenType.RPAREN:
+            return arguments
+        # 一参数
+        arg = self.parse_expression(ExpLevel.LOWEST)
+        arguments.append(arg)
+        # 多参数
+        while self.peek_tok.type == TokenType.COMMA:
+            self.next_token()
+            self.next_token()
+            arg = self.parse_expression(ExpLevel.LOWEST)
+            arguments.append(arg)
+
+        if not self.expect_peek(TokenType.RPAREN):
+            return []
+
+        return arguments
