@@ -49,7 +49,7 @@ class REPL():
     def json(self) -> None:
         """以 json 形式输出 AST"""
         import json
-        def get_json(node: Node) -> dict:
+        def get_json(node: Node | Token) -> dict:
             result = {}
             for attr in node.__dict__:
                 v = node.__dict__.get(attr)
