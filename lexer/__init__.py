@@ -1,5 +1,6 @@
 from lexer.token import TokenType
 from lexer.token import Token
+from lexer.token import Position
 from lexer.token import lookup_ident
 
 
@@ -34,6 +35,7 @@ class Lexer():
         self.__front_idx: int = 0
         self.__back_idx: int = 0
         self.__current: str = ''
+        self.__pos: Position = Position(0, 1)
         self.read_char()
     
 
@@ -43,6 +45,11 @@ class Lexer():
             self.__current = ''
         else:
             self.__current = self.__input[self.__back_idx]
+            if self.__current == '\n':
+                self.__pos.x = 0
+                self.__pos.y += 1
+            else:
+                self.__pos.x += 1
         self.__front_idx = self.__back_idx
         self.__back_idx += 1
     
@@ -84,56 +91,57 @@ class Lexer():
         self.skipspace()
 
         ch = self.__current
+        pos = Position(self.__pos.x, self.__pos.y)
         match ch:
             case '=':
                 if self.peek_char() == '=':
                     self.read_char()
-                    tok = Token(TokenType.EQ, str(ch) + str(self.__current))
+                    tok = Token(TokenType.EQ, str(ch) + str(self.__current), pos)
                 else:
-                    tok = Token(TokenType.ASSIGN, ch)
+                    tok = Token(TokenType.ASSIGN, ch, pos)
             case '+':
-                tok = Token(TokenType.PLUS, ch)
+                tok = Token(TokenType.PLUS, ch, pos)
             case '-':
-                tok = Token(TokenType.MINUS, ch)
+                tok = Token(TokenType.MINUS, ch, pos)
             case '!':
                 if self.peek_char() == '=':
                     self.read_char()
-                    tok = Token(TokenType.NOT_EQ, str(ch) + str(self.__current))
+                    tok = Token(TokenType.NOT_EQ, str(ch) + str(self.__current), pos)
                 else:
-                    tok = Token(TokenType.BANG, ch)
+                    tok = Token(TokenType.BANG, ch, pos)
             case '*':
-                tok = Token(TokenType.ASTERISK, ch)
+                tok = Token(TokenType.ASTERISK, ch, pos)
             case '/':
-                tok = Token(TokenType.SLASH, ch)
+                tok = Token(TokenType.SLASH, ch, pos)
             case '<':
-                tok = Token(TokenType.LT, ch)
+                tok = Token(TokenType.LT, ch, pos)
             case '>':
-                tok = Token(TokenType.GT, ch)
+                tok = Token(TokenType.GT, ch, pos)
             case ',':
-                tok = Token(TokenType.COMMA, ch)
+                tok = Token(TokenType.COMMA, ch, pos)
             case ';':
-                tok = Token(TokenType.SEMICOLON, ch)
+                tok = Token(TokenType.SEMICOLON, ch, pos)
             case '(':
-                tok = Token(TokenType.LPAREN, ch)
+                tok = Token(TokenType.LPAREN, ch, pos)
             case ')':
-                tok = Token(TokenType.RPAREN, ch)
+                tok = Token(TokenType.RPAREN, ch, pos)
             case '{':
-                tok = Token(TokenType.LBRACE, ch)
+                tok = Token(TokenType.LBRACE, ch, pos)
             case '}':
-                tok = Token(TokenType.RBRACE, ch)
+                tok = Token(TokenType.RBRACE, ch, pos)
             case '':
-                tok = Token(TokenType.EOF, '')
+                tok = Token(TokenType.EOF, '', pos)
             case _:
                 if is_letter(ch):
                     literal = self.read_identifier()
                     toktype = lookup_ident(literal)
-                    tok = Token(toktype, literal)
+                    tok = Token(toktype, literal, pos)
                     return tok
                 elif is_digit(ch):
-                    tok = Token(TokenType.INT, self.read_number())
+                    tok = Token(TokenType.INT, self.read_number(), pos)
                     return tok
                 else:
-                    tok = Token(TokenType.ILLEGAL, ch)
+                    tok = Token(TokenType.ILLEGAL, ch, pos)
         self.read_char()
         return tok
 

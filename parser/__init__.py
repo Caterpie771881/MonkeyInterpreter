@@ -2,6 +2,7 @@ import parser.ast as ast
 from lexer import Lexer
 from lexer.token import Token
 from lexer.token import TokenType
+from lexer.token import Position
 from typing import Callable
 from enum import IntEnum
 
@@ -37,13 +38,27 @@ leds = Callable[[ast.Expression], ast.Expression]
 """中缀解析函数规范"""
 
 
+class ParserError():
+    """parser 解析过程中发生的错误"""
+    def __init__(
+            self,
+            pos: Position,
+            msg: str = 'unknown error'
+        ):
+        self.pos = pos
+        self.msg = msg
+    
+    def __str__(self) -> str:
+        return self.msg
+
+
 class Parser():
     """语法分析器"""
     def __init__(self, lexer: Lexer):
         self.lexer = lexer
         self.cur_tok: Token = Token(TokenType.EOF, '')
         self.peek_tok: Token = Token(TokenType.EOF, '')
-        self.errors: list[str] = []
+        self.errors: list[ParserError] = []
         self.prefix_parse_funcs: dict[TokenType, nuds] = {}
         self.infix_parse_funcs: dict[TokenType, leds] = {}
         # 初始化 cur_tok 和 peek_tok
@@ -80,14 +95,19 @@ class Parser():
         self.infix_parse_funcs[tt] = fn
 
 
+    def recordError(self, msg: str) -> None:
+        pos = self.cur_tok.position
+        self.errors.append(ParserError(pos, msg))
+
+
     def peekError(self, expected_token_type: TokenType) -> None:
         msg = f"expected next token to be {expected_token_type}, got {self.peek_tok.type} instead"
-        self.errors.append(msg)
+        self.recordError(msg)
     
 
     def noNudsFnError(self, tt: TokenType) -> None:
         msg = f"no nuds function for {tt.value} found"
-        self.errors.append(msg)
+        self.recordError(msg)
 
 
     def next_token(self) -> None:

@@ -1,6 +1,6 @@
 from lexer import Lexer
-from lexer.token import Token, TokenType
-from parser import Parser
+from lexer.token import Token, TokenType, Position
+from parser import Parser, ParserError
 from parser.ast import Node
 from enum import Enum
 
@@ -15,6 +15,7 @@ class REPL():
     def __init__(self, mode: Mode = Mode.tostring):
         self.mode = mode
 
+
     def run(self) -> None:
         """运行 REPL"""
         print("Parser REPL")
@@ -27,12 +28,15 @@ class REPL():
                 print(f"Unknown REPL Mode: {self.mode}, run as tostring Mode")
                 self.tostring()
     
-    def raise_error(self, errors: list) -> None:
+
+    @staticmethod
+    def raise_error(errors: list[ParserError]) -> None:
         """打印 Parser 的错误信息"""
         print(f"parser has {len(errors)} errors:")
         for msg in errors:
-            print(f"parser error: {msg}")
+            print(f"  line {msg.pos.y}, {msg}")
     
+
     def tostring(self) -> None:
         """以 tostring 形式输出 AST"""
         print("Mode: tostring")
@@ -46,6 +50,7 @@ class REPL():
             else:
                 print(program.tostring())
     
+
     def json(self) -> None:
         """以 json 形式输出 AST"""
         import json
@@ -62,6 +67,8 @@ class REPL():
                         result[attr] = get_json(v)
                     case TokenType():
                         result[attr] = v.name
+                    case Position():
+                        pass
                     case _:
                         result[attr] = v
             return result

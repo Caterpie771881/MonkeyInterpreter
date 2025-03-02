@@ -36,10 +36,22 @@ class TokenType(Enum):
     RETURN = 'RETURN'
 
 
+class Position():
+    def __init__(self, x: int, y: int):
+        self.x = x
+        self.y = y
+
+
 class Token():
-    def __init__(self, type: TokenType, literal: str):
+    def __init__(
+            self,
+            type: TokenType,
+            literal: str,
+            position: Position = Position(0, 0)
+        ):
         self.type = type
         self.literal = literal
+        self.position = position
 
 
 keywords: dict[str, TokenType] = {
