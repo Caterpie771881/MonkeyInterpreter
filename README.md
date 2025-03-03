@@ -6,34 +6,31 @@
 
 ## 使用方法
 
-```
-cd MonkeyInterpreter; touch main.py
-python main.py
+```sh
+cd MonkeyInterpreter
+python main.py # 默认启动的是求值器
 ```
 
 启动词法分析器的 REPL:
 
-```python
-# main.py
-from lexer.repl import REPL
-
-repl = REPL()
-repl.run()
+```sh
+python main.py --run lexer
 ```
 
 启动语法分析器的 REPL:
 
-```python
-# main.py
-from parser.repl import REPL, Mode
-
+```sh
 # tostring 模式
-repl = REPL(Mode.tostring)
-repl.run()
+python main.py --run parser --mode tostring
 
 # json 模式
-# repl = RELP(Mode.json)
-# repl.run()
+python main.py --run parser --mode json
+```
+
+启动求值器的 REPL:
+
+```sh
+python main.py --run eval
 ```
 
 ## Monkey 语言介绍

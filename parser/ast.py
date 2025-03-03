@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from lexer.token import Token
+from lexer.token import Position
 
 
 class Node(ABC):
@@ -11,6 +12,10 @@ class Node(ABC):
     @abstractmethod
     def tostring(self) -> str:
         """返回 AST 节点的具体信息, 我不想覆写 __str__, 所以新建了一个 tostring 方法"""
+    
+    @abstractmethod
+    def TokenPos(self) -> Position:
+        """AST 节点对应词法单元的位置信息"""
 
 
 class Statement(Node):
@@ -37,6 +42,12 @@ class Program(Node):
     
     def tostring(self) -> str:
         return ''.join([stmt.tostring() for stmt in self.statements])
+    
+    def TokenPos(self) -> Position:
+        if len(self.statements) > 0:
+            return self.statements[0].TokenPos()
+        else:
+            return Position(0, 0)
 
 
 # ========== expression ==========
@@ -57,6 +68,9 @@ class Identifier(Expression):
     
     def tostring(self) -> str:
         return self.value
+    
+    def TokenPos(self) -> Position:
+        return self.token.position
 
 
 class IntegerLiteral(Expression):
@@ -75,6 +89,9 @@ class IntegerLiteral(Expression):
     
     def tostring(self) -> str:
         return self.token.literal
+    
+    def TokenPos(self) -> Position:
+        return self.token.position
 
 
 class PrefixExpression(Expression):
@@ -95,6 +112,9 @@ class PrefixExpression(Expression):
     
     def tostring(self) -> str:
         return f"({self.operator}{self.right.tostring()})"
+    
+    def TokenPos(self) -> Position:
+        return self.token.position
 
 
 class InfixExpression(Expression):
@@ -117,6 +137,9 @@ class InfixExpression(Expression):
     
     def tostring(self) -> str:
         return f"({self.left.tostring()} {self.operator} {self.right.tostring()})"
+    
+    def TokenPos(self) -> Position:
+        return self.token.position
 
 
 class Boolean(Expression):
@@ -135,6 +158,9 @@ class Boolean(Expression):
     
     def tostring(self) -> str:
         return self.token.literal
+    
+    def TokenPos(self) -> Position:
+        return self.token.position
 
 
 class IfExpression(Expression):
@@ -163,6 +189,9 @@ class IfExpression(Expression):
         else:
             alternative = ""
         return f"if {condition} {consequence}{alternative}"
+    
+    def TokenPos(self) -> Position:
+        return self.token.position
 
 
 class FunctionLiteral(Expression):
@@ -189,6 +218,9 @@ class FunctionLiteral(Expression):
         for p in self.parameters:
             params.append(p.tostring())
         return f"fn({','.join(params)}) {self.body.tostring()}"
+    
+    def TokenPos(self) -> Position:
+        return self.token.position
 
 
 class CallExpression(Expression):
@@ -215,6 +247,9 @@ class CallExpression(Expression):
         for a in self.arguments:
             args.append(a.tostring())
         return f"{self.func.tostring()}({','.join(args)})"
+    
+    def TokenPos(self) -> Position:
+        return self.token.position
 
 
 # ========== statement ==========
@@ -237,6 +272,9 @@ class ExpressionStatement(Statement):
         if self.expression != None:
             return self.expression.tostring()
         return '[nil]'
+    
+    def TokenPos(self) -> Position:
+        return self.token.position
 
 
 class LetStatement(Statement):
@@ -260,6 +298,9 @@ class LetStatement(Statement):
         if self.value != None:
             v = self.value.tostring()
         return f"{self.TokenLiteral()} {self.name.tostring()} = {v};"
+    
+    def TokenPos(self) -> Position:
+        return self.token.position
 
 
 class ReturnStatement(Statement):
@@ -281,6 +322,9 @@ class ReturnStatement(Statement):
         if self.return_value != None:
             v = self.return_value.tostring()
         return f"{self.TokenLiteral()} {v};"
+    
+    def TokenPos(self) -> Position:
+        return self.token.position
 
 
 class BlockStatement(Statement):
@@ -303,3 +347,5 @@ class BlockStatement(Statement):
     def tostring(self) -> str:
         return ''.join([stmt.tostring() for stmt in self.statements])
 
+    def TokenPos(self) -> Position:
+        return self.token.position
