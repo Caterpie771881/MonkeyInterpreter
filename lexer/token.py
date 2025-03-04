@@ -8,6 +8,7 @@ class TokenType(Enum):
     # 标识符 + 字面量
     IDENT = 'IDENT'
     INT = 'INT'
+    STRING = 'STRING'
     # 运算符
     ASSIGN = '='
     PLUS = '+'

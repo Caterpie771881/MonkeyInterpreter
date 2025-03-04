@@ -22,12 +22,13 @@ class Environment():
 
 
 class ObjectType(Enum):
-    INTEGER_OBJ      = "INTEGER"
-    BOOLEAN_OBJ      = "BOOLEAN"
-    NULL_OBJ         = "NULL"
-    RETURN_VALUE_OBJ = "RETURN_VALUE"
-    ERROR_OBJ        = "ERROR_OBJ"
-    FUNCTION_OBJ     = "FUNCTION_OBJ"
+    INTEGER_OBJ         = "INTEGER"
+    BOOLEAN_OBJ         = "BOOLEAN"
+    NULL_OBJ            = "NULL"
+    RETURN_VALUE_OBJ    = "RETURN_VALUE"
+    ERROR_OBJ           = "ERROR"
+    FUNCTION_OBJ        = "FUNCTION"
+    STRING_OBJ          = "STRING"
 
 
 class MonkeyObj(ABC):
@@ -130,3 +131,13 @@ class Function(MonkeyObj):
         params = [p.tostring() for p in self.parameters]
         return f"fn({','.join(params)}) {{\n{self.body.tostring()}\n}}"
 
+
+class String(MonkeyObj):
+    def __init__(self, value: str = ''):
+        self.value = value
+    
+    def type(self):
+        return ObjectType.STRING_OBJ
+
+    def inspect(self):
+        return self.value

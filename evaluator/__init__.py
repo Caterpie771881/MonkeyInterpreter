@@ -118,6 +118,9 @@ def Eval(node: ast.Node, env: obj.Environment) -> obj.MonkeyObj:
                 return args[0]
             return apply_function(func, args)
 
+        case ast.StringLiteral():
+            return obj.String(node.value)
+
         case _:
             return obj.Error(node.TokenPos(), f"unsupport ast node: {node.__class__}")
 

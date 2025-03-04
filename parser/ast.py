@@ -252,6 +252,27 @@ class CallExpression(Expression):
         return self.token.position
 
 
+class StringLiteral(Expression):
+    """字符串字面量"""
+    def __init__(
+            self,
+            token: Token = None,
+            value: str = ''
+        ):
+        self.token = token
+        """STRING 词法单元"""
+        self.value = value
+    
+    def TokenLiteral(self) -> str:
+        return self.token.literal
+    
+    def tostring(self) -> str:
+        return f"\"{self.value}\""
+    
+    def TokenPos(self) -> Position:
+        return self.token.position
+
+
 # ========== statement ==========
 
 class ExpressionStatement(Statement):

@@ -70,6 +70,16 @@ class Lexer():
         return self.__input[position:self.__front_idx]
 
 
+    def read_string(self) -> str:
+        """读取字符串"""
+        position = self.__front_idx
+        while True:
+            self.read_char()
+            if self.__current == '"' or self.__current == '':
+                break
+        return self.__input[position + 1: self.__front_idx]
+
+
     def skipspace(self) -> None:
         """跳过空白符"""
         while is_space(self.__current):
@@ -99,38 +109,56 @@ class Lexer():
                     tok = Token(TokenType.EQ, str(ch) + str(self.__current), pos)
                 else:
                     tok = Token(TokenType.ASSIGN, ch, pos)
+            
             case '+':
                 tok = Token(TokenType.PLUS, ch, pos)
+            
             case '-':
                 tok = Token(TokenType.MINUS, ch, pos)
+            
             case '!':
                 if self.peek_char() == '=':
                     self.read_char()
                     tok = Token(TokenType.NOT_EQ, str(ch) + str(self.__current), pos)
                 else:
                     tok = Token(TokenType.BANG, ch, pos)
+            
             case '*':
                 tok = Token(TokenType.ASTERISK, ch, pos)
+            
             case '/':
                 tok = Token(TokenType.SLASH, ch, pos)
+            
             case '<':
                 tok = Token(TokenType.LT, ch, pos)
+            
             case '>':
                 tok = Token(TokenType.GT, ch, pos)
+            
             case ',':
                 tok = Token(TokenType.COMMA, ch, pos)
+            
             case ';':
                 tok = Token(TokenType.SEMICOLON, ch, pos)
+            
             case '(':
                 tok = Token(TokenType.LPAREN, ch, pos)
+            
             case ')':
                 tok = Token(TokenType.RPAREN, ch, pos)
+            
             case '{':
                 tok = Token(TokenType.LBRACE, ch, pos)
+            
             case '}':
                 tok = Token(TokenType.RBRACE, ch, pos)
+            
+            case '"':
+                tok = Token(TokenType.STRING, self.read_string(), pos)
+            
             case '':
                 tok = Token(TokenType.EOF, '', pos)
+            
             case _:
                 if is_letter(ch):
                     literal = self.read_identifier()
@@ -142,6 +170,7 @@ class Lexer():
                     return tok
                 else:
                     tok = Token(TokenType.ILLEGAL, ch, pos)
+            
         self.read_char()
         return tok
 

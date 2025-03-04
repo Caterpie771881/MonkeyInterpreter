@@ -74,6 +74,7 @@ class Parser():
         self.register_nuds(TokenType.IF,        self.parse_if_expression)
         self.register_nuds(TokenType.LPAREN,    self.parse_grouped_expression)
         self.register_nuds(TokenType.FUNCTION,  self.parse_func_literal)
+        self.register_nuds(TokenType.STRING,    self.parse_string)
         self.register_leds(TokenType.PLUS,      self.parse_infix_expression)
         self.register_leds(TokenType.MINUS,     self.parse_infix_expression)
         self.register_leds(TokenType.SLASH,     self.parse_infix_expression)
@@ -424,3 +425,8 @@ class Parser():
             return []
 
         return arguments
+
+
+    def parse_string(self) -> ast.Expression:
+        """解析字符串字面量节点"""
+        return ast.StringLiteral(self.cur_tok, self.cur_tok.literal)
