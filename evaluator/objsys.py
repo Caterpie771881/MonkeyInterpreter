@@ -1,15 +1,20 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from lexer.token import Position
+from parser import ast
 
 
 class Environment():
     """解释器运行环境"""
-    def __init__(self):
+    def __init__(self, outer: "Environment" = None):
         self.store: dict[str, MonkeyObj] = {}
+        self.outer = outer
     
     def get(self, name: str):
-        return self.store.get(name)
+        obj = self.store.get(name)
+        if obj == None and self.outer != None:
+            return self.outer.get(name)
+        return obj
 
     def set(self, name: str, val: "MonkeyObj"):
         self.store[name] = val
@@ -17,11 +22,12 @@ class Environment():
 
 
 class ObjectType(Enum):
-    INTEGER_OBJ = "INTEGER"
-    BOOLEAN_OBJ = "BOOLEAN"
-    NULL_OBJ = "NULL"
+    INTEGER_OBJ      = "INTEGER"
+    BOOLEAN_OBJ      = "BOOLEAN"
+    NULL_OBJ         = "NULL"
     RETURN_VALUE_OBJ = "RETURN_VALUE"
-    ERROR_OBJ = "ERROR_OBJ"
+    ERROR_OBJ        = "ERROR_OBJ"
+    FUNCTION_OBJ     = "FUNCTION_OBJ"
 
 
 class MonkeyObj(ABC):
@@ -97,3 +103,30 @@ class Error(MonkeyObj):
     
     def inspect(self):
         return f"RUNTIME ERROR: line {self.pos.y}, column {self.pos.x}\n  {self.msg}"
+
+
+class Function(MonkeyObj):
+    """函数对象"""
+    def __init__(
+            self,
+            parameters: list[ast.Identifier] = None,
+            body: ast.BlockStatement = None,
+            env: Environment = None
+        ):
+        if parameters:
+            self.parameters = parameters
+        else:
+            self.parameters: list[ast.Identifier] = []
+        self.body = body
+        if env:
+            self.env = env
+        else:
+            self.env: Environment = Environment()
+    
+    def type(self):
+        return ObjectType.FUNCTION_OBJ
+    
+    def inspect(self):
+        params = [p.tostring() for p in self.parameters]
+        return f"fn({','.join(params)}) {{\n{self.body.tostring()}\n}}"
+

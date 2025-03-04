@@ -31,6 +31,13 @@ def is_error(obj_: obj.MonkeyObj) -> bool:
     return False
 
 
+def unwrap(obj_: obj.MonkeyObj) -> obj.MonkeyObj:
+    """解包 RETURN 对象"""
+    if obj_.type() == obj.ObjectType.RETURN_VALUE_OBJ:
+        return obj_.value
+    return obj_
+
+
 def Eval(node: ast.Node, env: obj.Environment) -> obj.MonkeyObj:
     """对所有类型的节点求值"""
     global NULL, TRUE, FALSE
@@ -95,6 +102,22 @@ def Eval(node: ast.Node, env: obj.Environment) -> obj.MonkeyObj:
                 return val
             return obj.Error(node.TokenPos(), f"identifier not found: {node.value}")
         
+        case ast.FunctionLiteral():
+            return obj.Function(node.parameters, node.body, env)
+        
+        case ast.CallExpression():
+            func = Eval(node.func, env)
+            if is_error(func):
+                return func
+            if not isinstance(func, obj.Function):
+                return obj.Error(
+                    node.TokenPos(),
+                    f"not a function: {func.type().value} is not callable")
+            args = eval_expressions(node.arguments, env)
+            if len(args) == 1 and is_error(args[0]):
+                return args[0]
+            return apply_function(func, args)
+
         case _:
             return obj.Error(node.TokenPos(), f"unsupport ast node: {node.__class__}")
 
@@ -239,3 +262,30 @@ def eval_infix_expression_for_boolean(
         case _:
             return obj.Error(pos, f"unknown operator: BOOLEAN unsupport operator '{operator}'")
 
+
+def eval_expressions(
+        exps: list[ast.Expression],
+        env: obj.Environment
+    ) -> list[obj.MonkeyObj]:
+    """批量求值表达式, 返回一个由表达式对应结果组成的 list,
+    一旦出现错误, 将返回一个仅由错误对象组成的 list"""
+    result: list[obj.MonkeyObj] = []
+    for e in exps:
+        evaluated = Eval(e, env)
+        if is_error(evaluated):
+            return [evaluated]
+        result.append(evaluated)
+    return result
+
+
+def apply_function(
+        func: obj.Function,
+        args: list[obj.MonkeyObj]
+    ) -> obj.MonkeyObj:
+    """执行函数"""
+    extend_env = obj.Environment(func.env)
+    for i in range(len(func.parameters)):
+        param = func.parameters[i].value
+        extend_env.set(param, args[i])
+    evaluated = Eval(func.body, extend_env)
+    return unwrap(evaluated)
