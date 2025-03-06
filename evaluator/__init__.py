@@ -1,11 +1,11 @@
 from lexer.token import Position
 from parser import ast
 from evaluator import objsys as obj
+from evaluator.builtins import Builtins
+from evaluator.builtins import TRUE, FALSE, NULL
 
 
-NULL = obj.Null()
-TRUE = obj.Boolean(True)
-FALSE = obj.Boolean(False)
+builtins = Builtins()
 
 
 def native_bool(v: bool):
@@ -97,7 +97,7 @@ def Eval(node: ast.Node, env: obj.Environment) -> obj.MonkeyObj:
             env.set(node.name.value, val)
         
         case ast.Identifier():
-            val = env.get(node.value)
+            val = env.get(node.value) or builtins.get(node.value)
             if val:
                 return val
             return obj.Error(node.TokenPos(), f"identifier not found: {node.value}")
@@ -106,20 +106,45 @@ def Eval(node: ast.Node, env: obj.Environment) -> obj.MonkeyObj:
             return obj.Function(node.parameters, node.body, env)
         
         case ast.CallExpression():
-            func = Eval(node.func, env)
-            if is_error(func):
-                return func
-            if not isinstance(func, obj.Function):
-                return obj.Error(
-                    node.TokenPos(),
-                    f"not a function: {func.type().value} is not callable")
-            args = eval_expressions(node.arguments, env)
-            if len(args) == 1 and is_error(args[0]):
-                return args[0]
-            return apply_function(func, args)
-
+            fn = Eval(node.func, env)
+            match fn:
+                case obj.Error():
+                    return fn
+                case obj.Function():
+                    args = eval_expressions(node.arguments, env)
+                    if len(args) == 1 and is_error(args[0]):
+                        return args[0]
+                    return apply_function(fn, args)
+                case obj.Python():
+                    args = eval_expressions(node.arguments, env)
+                    if len(args) == 1 and is_error(args[0]):
+                        return args[0]
+                    return fn.func(node.TokenPos(), args)
+                case _:
+                    return obj.Error(
+                        node.TokenPos(),
+                        f"not a function: {fn.type().value} is not callable"
+                    )                
+            
         case ast.StringLiteral():
             return obj.String(node.value)
+
+        case ast.ArrayLiteral():
+            elements = eval_expressions(node.elements, env)
+            if len(elements) == 1 and is_error(elements[0]):
+                return elements[0]
+            return obj.Array(elements)
+
+        case ast.IndexExpression():
+            left = Eval(node.left, env)
+            if is_error(left):
+                return left
+            
+            idx = Eval(node.index, env)
+            if is_error(idx):
+                return idx
+            
+            return eval_index_expression(left, idx, node.TokenPos())
 
         case _:
             return obj.Error(node.TokenPos(), f"unsupport ast node: {node.__class__}")
@@ -217,6 +242,11 @@ def eval_infix_expression(
         and right.type() == obj.ObjectType.BOOLEAN_OBJ
         ):
         return eval_infix_expression_for_boolean(left, operator, right, pos)
+    if (
+        left.type() == obj.ObjectType.STRING_OBJ
+        and right.type() == obj.ObjectType.STRING_OBJ
+        ):
+        return eval_infix_expression_for_string(left, operator, right, pos)
     return obj.Error(pos, f"type mismatch: {left.type().value} {operator} {right.type().value}")
 
 
@@ -266,6 +296,20 @@ def eval_infix_expression_for_boolean(
             return obj.Error(pos, f"unknown operator: BOOLEAN unsupport operator '{operator}'")
 
 
+def eval_infix_expression_for_string(
+        left: obj.String,
+        operator: str,
+        right: obj.String,
+        pos: Position
+    ) -> obj.MonkeyObj:
+    """对字符串支持的中缀表达式求值"""
+    match operator:
+        case '+':
+            return obj.String(left.value + right.value)
+        case _:
+            return obj.Error(pos, f"unknown operator: STRING unsupport operator '{operator}'")
+
+
 def eval_expressions(
         exps: list[ast.Expression],
         env: obj.Environment
@@ -292,3 +336,25 @@ def apply_function(
         extend_env.set(param, args[i])
     evaluated = Eval(func.body, extend_env)
     return unwrap(evaluated)
+
+
+def eval_index_expression(
+        left: obj.MonkeyObj,
+        index: obj.MonkeyObj,
+        pos: Position,
+    ) -> obj.MonkeyObj:
+    """对取下标表达式求值"""
+    match left:
+        case obj.Array():
+            if isinstance(index, obj.Integer):
+                try: return left.elements[index.value]
+                except: return NULL
+            return obj.Error(
+                pos,
+                f"array index must be Integer. not {index.type().value}"
+            )
+        case _:
+            return obj.Error(
+                pos,
+                f"index operator not supported: {left.type().value}"
+            )

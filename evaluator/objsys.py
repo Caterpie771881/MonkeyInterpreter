@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
+from typing import Callable
 from lexer.token import Position
 from parser import ast
 
@@ -29,6 +30,8 @@ class ObjectType(Enum):
     ERROR_OBJ           = "ERROR"
     FUNCTION_OBJ        = "FUNCTION"
     STRING_OBJ          = "STRING"
+    PYTHON_OBJ          = "PYTHON"
+    ARRAY_OBJ           = "ARRAY"
 
 
 class MonkeyObj(ABC):
@@ -140,4 +143,37 @@ class String(MonkeyObj):
         return ObjectType.STRING_OBJ
 
     def inspect(self):
-        return self.value
+        return f'"{self.value}"'
+
+
+class Python(MonkeyObj):
+    """python 对象,
+    该对象持有一个 python 函数, 能直接使用宿主语言生成 MonkeyObj"""
+    def __init__(
+            self,
+            name: str = '',
+            func: Callable[[Position, list[MonkeyObj]], MonkeyObj] = None
+        ):
+        self.name = name
+        self.func = func
+
+    def type(self):
+        return ObjectType.PYTHON_OBJ
+    
+    def inspect(self):
+        return f"{self.name}<py>(...){{...}}"
+
+
+class Array(MonkeyObj):
+    """数组对象"""
+    def __init__(self, elements: list[MonkeyObj] = None):
+        if elements:
+            self.elements = elements
+        else:
+            self.elements: list[MonkeyObj] = []
+    
+    def type(self) -> ObjectType:
+        return ObjectType.ARRAY_OBJ
+
+    def inspect(self) -> str:
+        return f"[{', '.join([e.inspect() for e in self.elements])}]"

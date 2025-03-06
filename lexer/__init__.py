@@ -153,6 +153,12 @@ class Lexer():
             case '}':
                 tok = Token(TokenType.RBRACE, ch, pos)
             
+            case '[':
+                tok = Token(TokenType.LBRACKET, ch, pos)
+
+            case ']':
+                tok = Token(TokenType.RBRACKET, ch, pos)
+
             case '"':
                 tok = Token(TokenType.STRING, self.read_string(), pos)
             

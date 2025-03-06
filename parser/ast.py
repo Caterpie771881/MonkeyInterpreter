@@ -273,6 +273,53 @@ class StringLiteral(Expression):
         return self.token.position
 
 
+class ArrayLiteral(Expression):
+    """数组字面量节点"""
+    def __init__(
+            self,
+            token: Token = None,
+            elements: list[Expression] = None
+        ):
+        self.token = token
+        """LBRACKET 词法单元"""
+        if elements:
+            self.elements = elements
+        else:
+            self.elements: list[Expression] = []
+
+    def TokenLiteral(self) -> str:
+        return self.token.literal
+    
+    def tostring(self) -> str:
+        return f"[{', '.join([e.tostring() for e in self.elements])}]"
+
+    def TokenPos(self) -> Position:
+        return self.token.position
+
+
+class IndexExpression(Expression):
+    """取下标表达式 节点"""
+    def __init__(
+            self,
+            token: Token = None,
+            left: Expression = None,
+            index: Expression = None
+        ):
+        self.token = token
+        """'[' 词法单元"""
+        self.left = left
+        self.index = index
+    
+    def TokenLiteral(self) -> str:
+        return self.token.literal
+    
+    def tostring(self) -> str:
+        return f"({self.left.tostring()}[{self.index.tostring()}])"
+    
+    def TokenPos(self) -> Position:
+        return self.token.position
+
+
 # ========== statement ==========
 
 class ExpressionStatement(Statement):

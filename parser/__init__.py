@@ -16,6 +16,7 @@ class ExpLevel(IntEnum):
     PRODUCT     = 4 # *
     PREFIX      = 5 # -X or !X
     CALL        = 6 # func(X)
+    INDEX       = 7 # array[idx] 
 
 
 token_level: dict[TokenType, ExpLevel] = {
@@ -28,6 +29,7 @@ token_level: dict[TokenType, ExpLevel] = {
     TokenType.SLASH:    ExpLevel.PRODUCT,
     TokenType.ASTERISK: ExpLevel.PRODUCT,
     TokenType.LPAREN:   ExpLevel.CALL,
+    TokenType.LBRACKET: ExpLevel.INDEX,
 }
 """符号的优先级表"""
 
@@ -75,6 +77,7 @@ class Parser():
         self.register_nuds(TokenType.LPAREN,    self.parse_grouped_expression)
         self.register_nuds(TokenType.FUNCTION,  self.parse_func_literal)
         self.register_nuds(TokenType.STRING,    self.parse_string)
+        self.register_nuds(TokenType.LBRACKET,  self.parse_array)
         self.register_leds(TokenType.PLUS,      self.parse_infix_expression)
         self.register_leds(TokenType.MINUS,     self.parse_infix_expression)
         self.register_leds(TokenType.SLASH,     self.parse_infix_expression)
@@ -84,6 +87,7 @@ class Parser():
         self.register_leds(TokenType.LT,        self.parse_infix_expression)
         self.register_leds(TokenType.GT,        self.parse_infix_expression)
         self.register_leds(TokenType.LPAREN,    self.parse_call_expression)
+        self.register_leds(TokenType.LBRACKET,  self.parse_index_expression)
 
 
     def register_nuds(self, tt: TokenType, fn: nuds) -> None:
@@ -370,28 +374,42 @@ class Parser():
         return exp
     
 
-    def parse_func_parameters(self) -> list[ast.Identifier]:
-        """解析函数字面量参数"""
+    def parse_expression_list(
+            self,
+            separator: TokenType = TokenType.COMMA,
+            end: TokenType = TokenType.RPAREN
+        ) -> list[ast.Expression]:
+        """通用参数列表解析方法,
+        separator 用于指定参数之间的分隔符,
+        end 用于指定标识列表结尾的词法单元"""
         self.next_token()
 
-        parameters: list[ast.Identifier] = []
+        exp_list: list[ast.Expression] = []
 
         # 零参数
-        if self.cur_tok.type == TokenType.RPAREN:
-            return parameters
+        if self.cur_tok.type == end:
+            return exp_list
         # 一参数
-        p = ast.Identifier(self.cur_tok, self.cur_tok.literal)
-        parameters.append(p)
+        element = self.parse_expression(ExpLevel.LOWEST)
+        exp_list.append(element)
         # 多参数
-        while self.peek_tok.type == TokenType.COMMA:
+        while self.peek_tok.type == separator:
             self.next_token()
             self.next_token()
-            p = ast.Identifier(self.cur_tok, self.cur_tok.literal)
-            parameters.append(p)
-        
-        if not self.expect_peek(TokenType.RPAREN):
+            element = self.parse_expression(ExpLevel.LOWEST)
+            exp_list.append(element)
+
+        if not self.expect_peek(end):
             return []
-        
+
+        return exp_list
+
+
+    def parse_func_parameters(self) -> list[ast.Identifier]:
+        """解析函数字面量参数"""
+        parameters: list[ast.Identifier] = self.parse_expression_list()
+        if not all([isinstance(p, ast.Identifier) for p in parameters]):
+            self.recordError("function parameters only accept Identifier")
         return parameters
 
 
@@ -404,29 +422,30 @@ class Parser():
 
     def parse_call_arguments(self) -> list[ast.Expression]:
         """解析调用表达式的参数列表"""
-        self.next_token()
-
-        arguments: list[ast.Expression] = []
-
-        # 零参数
-        if self.cur_tok.type == TokenType.RPAREN:
-            return arguments
-        # 一参数
-        arg = self.parse_expression(ExpLevel.LOWEST)
-        arguments.append(arg)
-        # 多参数
-        while self.peek_tok.type == TokenType.COMMA:
-            self.next_token()
-            self.next_token()
-            arg = self.parse_expression(ExpLevel.LOWEST)
-            arguments.append(arg)
-
-        if not self.expect_peek(TokenType.RPAREN):
-            return []
-
+        arguments: list[ast.Expression] = self.parse_expression_list()
         return arguments
 
 
     def parse_string(self) -> ast.Expression:
         """解析字符串字面量节点"""
         return ast.StringLiteral(self.cur_tok, self.cur_tok.literal)
+
+
+    def parse_array(self) -> ast.Expression:
+        """解析数组字面量"""
+        exp = ast.ArrayLiteral(self.cur_tok)
+        exp.elements = self.parse_expression_list(end=TokenType.RBRACKET)
+        return exp
+
+
+    def parse_index_expression(self, left: ast.Expression) -> ast.Expression:
+        """解析取下标表达式"""
+        exp = ast.IndexExpression(self.cur_tok, left)
+
+        self.next_token()
+        exp.index = self.parse_expression(ExpLevel.LOWEST)
+
+        if not self.expect_peek(TokenType.RBRACKET):
+            return None
+        
+        return exp
