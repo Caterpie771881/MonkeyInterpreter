@@ -36,7 +36,7 @@ def exit_(pos: Position, args: pyfunc_args) -> obj.MonkeyObj:
 
 
 def puts(pos: Position, args: pyfunc_args) -> obj.MonkeyObj:
-    print(*[arg.inspect() for arg in args])
+    print(*[arg.readable() for arg in args])
     return NULL
 
 

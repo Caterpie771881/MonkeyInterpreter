@@ -42,9 +42,16 @@ class MonkeyObj(ABC):
     def type(self) -> ObjectType:...
 
     @abstractmethod
-    def inspect(self) -> str:...
+    def inspect(self) -> str:
+        """返回对象的标准字符串表示"""
+    
+    @abstractmethod
+    def readable(self) -> str:
+        """返回对象的可读字符串表示"""
+
 
 HashKey = tuple[ObjectType, int]
+
 
 class Hashable(ABC):
     """可哈希抽象类"""
@@ -63,6 +70,9 @@ class Integer(MonkeyObj, Hashable):
     def inspect(self) -> str:
         return str(self.value)
     
+    def readable(self):
+        return str(self.value)
+    
     def hashkey(self) -> HashKey:
         return self.type(), self.value
 
@@ -76,6 +86,9 @@ class Boolean(MonkeyObj, Hashable):
         return ObjectType.BOOLEAN_OBJ
     
     def inspect(self):
+        return str(self.value)
+    
+    def readable(self):
         return str(self.value)
     
     def hashkey(self) -> HashKey:
@@ -93,6 +106,9 @@ class Null(MonkeyObj):
     
     def inspect(self):
         return "null"
+    
+    def readable(self):
+        return "null"
 
 
 class ReturnValue(MonkeyObj):
@@ -105,8 +121,13 @@ class ReturnValue(MonkeyObj):
     
     def inspect(self):
         if not self.value:
-            return "null"
+            return ""
         return self.value.inspect()
+    
+    def readable(self):
+        if not self.value:
+            return "null"
+        return self.value.readable()
 
 
 class Error(MonkeyObj):
@@ -123,7 +144,10 @@ class Error(MonkeyObj):
         return ObjectType.ERROR_OBJ
     
     def inspect(self):
-        return f"RUNTIME ERROR: line {self.pos.y}, column {self.pos.x}\n  {self.msg}"
+        return f"runtime error: line {self.pos.y}, column {self.pos.x}\n  {self.msg}"
+    
+    def readable(self):
+        return f"runtime error: line {self.pos.y}, column {self.pos.x}\n  {self.msg}"
 
 
 class Function(MonkeyObj):
@@ -148,6 +172,9 @@ class Function(MonkeyObj):
         return ObjectType.FUNCTION_OBJ
     
     def inspect(self):
+        return f"<function at {hex(id(self))}>"
+    
+    def readable(self):
         params = [p.tostring() for p in self.parameters]
         return f"fn({','.join(params)}) {{\n{self.body.tostring()}\n}}"
 
@@ -161,6 +188,9 @@ class String(MonkeyObj, Hashable):
 
     def inspect(self):
         return f'"{self.value}"'
+    
+    def readable(self):
+        return f"{self.value}"
     
     def hashkey(self) -> HashKey:
         return self.type(), hash(self.value)
@@ -181,6 +211,9 @@ class Python(MonkeyObj):
         return ObjectType.PYTHON_OBJ
     
     def inspect(self):
+        return f"<python-bind function {self.name}>"
+        
+    def readable(self):
         return f"{self.name}<py>(...){{...}}"
 
 
@@ -197,6 +230,9 @@ class Array(MonkeyObj):
 
     def inspect(self) -> str:
         return f"[{', '.join([e.inspect() for e in self.elements])}]"
+    
+    def readable(self) -> str:
+        return f"[{', '.join([e.readable() for e in self.elements])}]"
 
 
 class HashPair(MonkeyObj):
@@ -214,6 +250,9 @@ class HashPair(MonkeyObj):
     
     def inspect(self) -> str:
         return f"{self.key.inspect()}:{self.value.inspect()}"
+    
+    def readable(self) -> str:
+        return f"{self.key.readable()}:{self.value.readable()}"
 
 
 class Hash(MonkeyObj):
@@ -234,4 +273,10 @@ class Hash(MonkeyObj):
         pairs = []
         for p in self.pairs.values():
             pairs.append(p.inspect())
+        return f"{{{', '.join(pairs)}}}"
+    
+    def readable(self) -> str:
+        pairs = []
+        for p in self.pairs.values():
+            pairs.append(p.readable())
         return f"{{{', '.join(pairs)}}}"

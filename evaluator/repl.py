@@ -3,6 +3,7 @@ from lexer import Lexer
 from parser import Parser
 from parser.repl import REPL as RPPL
 from evaluator.objsys import Environment
+from evaluator.builtins import NULL
 
 
 PROMPT = """\
@@ -34,5 +35,5 @@ class REPL():
             RPPL.raise_error(p.errors)
             return
         evaluated = evaluator.Eval(program, self.env)
-        if evaluated != None:
+        if evaluated != None and evaluated != NULL:
             print(evaluated.inspect())
