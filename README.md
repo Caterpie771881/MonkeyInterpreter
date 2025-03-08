@@ -33,6 +33,16 @@ python main.py --run parser --mode json
 python main.py --run eval
 ```
 
+支持使用指定的文件作为输入
+
+```sh
+python main.py mycode.monkey
+
+python main.py mycode.monkey -r lexer
+
+python main.py mycode.monkey -r parser
+```
+
 ## Monkey 语言介绍
 
 > 引用自《用 Go 语言自制解释器》的前言部分
@@ -125,3 +135,16 @@ twice(addTwo, 2); // => 6
 这里的 `twice` 接受了两个参数: 函数 `addTwo` 和整数 `2`. 这段代码调用了 `addTwo` 两次, 第一次以 `2` 为参数, 第二次以第一次的返回值为参数. 最后一行代码返回结果 6
 
 是的, 我们可以在函数调用中将函数作为参数. Monkey 中的函数只是值, 与整数或字符串一样. 具有这个特性的函数成为"头等函数" (first-class function)
+
+## 其他
+
+原书中有, 但该项目未实现的功能:
+
+* 并未实现书中第 5 章提到的 “宏系统”
+
+原书中没有, 但该项目实现了的功能:
+
+* 实现了报错时提示出错位置的行号列号的功能
+
+* 实现了内置函数 `exit`, 用于退出程序
+
