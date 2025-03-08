@@ -20,6 +20,7 @@ class TokenType(Enum):
     GT = '>'
     EQ = '=='
     NOT_EQ = '!='
+    COLON = ':'
     # 分隔符
     COMMA = ','
     SEMICOLON = ';'
@@ -37,6 +38,7 @@ class TokenType(Enum):
     FALSE = 'FALSE'
     ELSE = 'ELSE'
     RETURN = 'RETURN'
+    IMPORT = 'IMPORT'
 
 
 class Position():
@@ -58,13 +60,14 @@ class Token():
 
 
 keywords: dict[str, TokenType] = {
-    'fn': TokenType.FUNCTION,
-    'let': TokenType.LET,
-    'if': TokenType.IF,
-    'true': TokenType.TRUE,
-    'false': TokenType.FALSE,
-    'else': TokenType.ELSE,
-    'return': TokenType.RETURN
+    'fn':       TokenType.FUNCTION,
+    'let':      TokenType.LET,
+    'if':       TokenType.IF,
+    'true':     TokenType.TRUE,
+    'false':    TokenType.FALSE,
+    'else':     TokenType.ELSE,
+    'return':   TokenType.RETURN,
+    'import':   TokenType.IMPORT,
 }
 
 

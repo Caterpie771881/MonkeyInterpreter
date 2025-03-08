@@ -32,6 +32,8 @@ class ObjectType(Enum):
     STRING_OBJ          = "STRING"
     PYTHON_OBJ          = "PYTHON"
     ARRAY_OBJ           = "ARRAY"
+    HASH_OBJ            = "HASH"
+    HASHPAIR_OBJ        = "HASHPAIR"
 
 
 class MonkeyObj(ABC):
@@ -42,8 +44,15 @@ class MonkeyObj(ABC):
     @abstractmethod
     def inspect(self) -> str:...
 
+HashKey = tuple[ObjectType, int]
 
-class Integer(MonkeyObj):
+class Hashable(ABC):
+    """可哈希抽象类"""
+    @abstractmethod
+    def hashkey(self) -> HashKey:...
+
+
+class Integer(MonkeyObj, Hashable):
     """整型"""
     def __init__(self, value: int = None):
         self.value = value
@@ -53,9 +62,12 @@ class Integer(MonkeyObj):
     
     def inspect(self) -> str:
         return str(self.value)
+    
+    def hashkey(self) -> HashKey:
+        return self.type(), self.value
 
 
-class Boolean(MonkeyObj):
+class Boolean(MonkeyObj, Hashable):
     """布尔值"""
     def __init__(self, value: bool = None):
         self.value = value
@@ -66,6 +78,11 @@ class Boolean(MonkeyObj):
     def inspect(self):
         return str(self.value)
     
+    def hashkey(self) -> HashKey:
+        if self.value:
+            return self.type(), 1
+        return self.type(), 0
+
 
 class Null(MonkeyObj):
     """空值"""
@@ -135,7 +152,7 @@ class Function(MonkeyObj):
         return f"fn({','.join(params)}) {{\n{self.body.tostring()}\n}}"
 
 
-class String(MonkeyObj):
+class String(MonkeyObj, Hashable):
     def __init__(self, value: str = ''):
         self.value = value
     
@@ -144,6 +161,9 @@ class String(MonkeyObj):
 
     def inspect(self):
         return f'"{self.value}"'
+    
+    def hashkey(self) -> HashKey:
+        return self.type(), hash(self.value)
 
 
 class Python(MonkeyObj):
@@ -177,3 +197,41 @@ class Array(MonkeyObj):
 
     def inspect(self) -> str:
         return f"[{', '.join([e.inspect() for e in self.elements])}]"
+
+
+class HashPair(MonkeyObj):
+    """哈希键值对对象"""
+    def __init__(
+            self,
+            key: MonkeyObj | Hashable = None,
+            value: MonkeyObj = None
+        ):
+        self.key = key
+        self.value = value
+    
+    def type(self) -> ObjectType:
+        return ObjectType.HASHPAIR_OBJ
+    
+    def inspect(self) -> str:
+        return f"{self.key.inspect()}:{self.value.inspect()}"
+
+
+class Hash(MonkeyObj):
+    """哈希表对象"""
+    def __init__(
+            self,
+            pairs: dict[HashKey, HashPair] = None
+        ):
+        if pairs:
+            self.pairs = pairs
+        else:
+            self.pairs: dict[HashKey, HashPair] = {}            
+    
+    def type(self) -> ObjectType:
+        return ObjectType.HASH_OBJ
+
+    def inspect(self) -> str:
+        pairs = []
+        for p in self.pairs.values():
+            pairs.append(p.inspect())
+        return f"{{{', '.join(pairs)}}}"

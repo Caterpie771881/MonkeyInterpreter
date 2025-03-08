@@ -146,6 +146,16 @@ def Eval(node: ast.Node, env: obj.Environment) -> obj.MonkeyObj:
             
             return eval_index_expression(left, idx, node.TokenPos())
 
+        case ast.HashLiteral():
+            pairs = {}
+            for p in node.pairs:
+                hash_pair: obj.HashPair = eval_pairs_expression(p, env)
+                if is_error(hash_pair):
+                    return hash_pair
+                hash_key = hash_pair.key.hashkey()
+                pairs[hash_key] = hash_pair
+            return obj.Hash(pairs)
+
         case _:
             return obj.Error(node.TokenPos(), f"unsupport ast node: {node.__class__}")
 
@@ -182,6 +192,21 @@ def eval_block_statement(
                 ):
                 return result
     return result
+
+
+def eval_pairs_expression(
+        pairs: ast.PairsExpression,
+        env: obj.Environment
+    ) -> obj.MonkeyObj:
+    """对键值对表达式求值"""
+    key = Eval(pairs.key, env)
+
+    if not isinstance(key, obj.Hashable):
+        return obj.Error(pairs.TokenPos(), f"{key.type()} is not hashable")
+    
+    value = Eval(pairs.value, env)
+
+    return obj.HashPair(key, value)
 
 
 # ========== prefix expression ==========
@@ -353,6 +378,13 @@ def eval_index_expression(
                 pos,
                 f"array index must be Integer. not {index.type().value}"
             )
+        case obj.Hash():
+            if not isinstance(index, obj.Hashable):
+                return obj.Error(f"{index.type()} is not hashable")
+            pairs = left.pairs.get(index.hashkey())
+            if pairs:
+                return pairs.value
+            return NULL
         case _:
             return obj.Error(
                 pos,

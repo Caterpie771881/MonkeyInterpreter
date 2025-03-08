@@ -162,6 +162,9 @@ class Lexer():
             case '"':
                 tok = Token(TokenType.STRING, self.read_string(), pos)
             
+            case ':':
+                tok = Token(TokenType.COLON, ch, pos)
+
             case '':
                 tok = Token(TokenType.EOF, '', pos)
             

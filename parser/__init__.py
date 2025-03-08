@@ -78,6 +78,7 @@ class Parser():
         self.register_nuds(TokenType.FUNCTION,  self.parse_func_literal)
         self.register_nuds(TokenType.STRING,    self.parse_string)
         self.register_nuds(TokenType.LBRACKET,  self.parse_array)
+        self.register_nuds(TokenType.LBRACE,    self.parse_hash_expression)
         self.register_leds(TokenType.PLUS,      self.parse_infix_expression)
         self.register_leds(TokenType.MINUS,     self.parse_infix_expression)
         self.register_leds(TokenType.SLASH,     self.parse_infix_expression)
@@ -448,4 +449,35 @@ class Parser():
         if not self.expect_peek(TokenType.RBRACKET):
             return None
         
+        return exp
+
+
+    def parse_hash_expression(self) -> ast.Expression:
+        """解析哈希表表达式"""
+        exp = ast.HashLiteral(self.cur_tok)
+        
+        while self.peek_tok.type != TokenType.RBRACE:
+            self.next_token()
+            key = self.parse_expression(ExpLevel.LOWEST)
+            if not self.expect_peek(TokenType.COLON):
+                self.recordError(f"SyntaxError: ':' expected after dictionary key")
+                break
+            exp.pairs.append(self.parse_pairs_expression(key))
+            if (
+                self.peek_tok.type != TokenType.RBRACE
+                and not self.expect_peek(TokenType.COMMA)
+                ):
+                break
+        
+        if not self.expect_peek(TokenType.RBRACE):
+            return None
+        
+        return exp
+
+
+    def parse_pairs_expression(self, key: ast.Expression) -> ast.Expression:
+        """解析键值对表达式"""
+        exp = ast.PairsExpression(self.cur_tok, key)
+        self.next_token()
+        exp.value = self.parse_expression(ExpLevel.LOWEST)
         return exp

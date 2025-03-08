@@ -320,6 +320,53 @@ class IndexExpression(Expression):
         return self.token.position
 
 
+class HashLiteral(Expression):
+    """哈希表字面量节点"""
+    def __init__(
+            self,
+            token: Token = None,
+            pairs: list["PairsExpression"] = None
+        ):
+        self.token = token
+        if pairs:
+            self.pairs = pairs
+        else:
+            self.pairs: list["PairsExpression"] = []
+
+    def TokenLiteral(self) -> str:
+        return self.token.literal
+
+    def tostring(self) -> str:
+        pairs = [p.tostring() for p in self.pairs]
+        return f"{{{', '.join(pairs)}}}"
+
+    def TokenPos(self) -> Position:
+        return self.token.position
+
+
+class PairsExpression(Expression):
+    """键值对表达式节点"""
+    def __init__(
+            self,
+            token: Token = None,
+            key: Expression = None,
+            value: Expression = None
+        ):
+        self.token = token
+        """':' 词法单元"""
+        self.key = key
+        self.value = value
+    
+    def TokenLiteral(self) -> str:
+        return self.token.literal
+    
+    def tostring(self) -> str:
+        return f"{self.key.tostring()}:{self.value.tostring()}"
+    
+    def TokenPos(self) -> Position:
+        return self.token.position
+
+
 # ========== statement ==========
 
 class ExpressionStatement(Statement):
@@ -415,5 +462,22 @@ class BlockStatement(Statement):
     def tostring(self) -> str:
         return ''.join([stmt.tostring() for stmt in self.statements])
 
+    def TokenPos(self) -> Position:
+        return self.token.position
+
+
+class ImportStatement(Statement):
+    """导入语句节点"""
+    def __init__(self, token: Token = None, module: str = ''):
+        self.token = token
+        """IMPORT 词法单元"""
+        self.module = module
+    
+    def TokenLiteral(self) -> str:
+        return self.token.literal
+    
+    def tostring(self) -> str:
+        return f"import {self.module};"
+    
     def TokenPos(self) -> Position:
         return self.token.position
