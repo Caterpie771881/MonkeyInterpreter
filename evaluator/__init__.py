@@ -40,7 +40,6 @@ def unwrap(obj_: obj.MonkeyObj) -> obj.MonkeyObj:
 
 def Eval(node: ast.Node, env: obj.Environment) -> obj.MonkeyObj:
     """对所有类型的节点求值"""
-    global NULL, TRUE, FALSE
     match node:
         case ast.Program():
             return eval_program(node.statements, env)
@@ -155,6 +154,9 @@ def Eval(node: ast.Node, env: obj.Environment) -> obj.MonkeyObj:
                 hash_key = hash_pair.key.hashkey()
                 pairs[hash_key] = hash_pair
             return obj.Hash(pairs)
+
+        case ast.NullLiteral():
+            return NULL
 
         case _:
             return obj.Error(node.TokenPos(), f"unsupport ast node: {node.__class__}")

@@ -367,6 +367,22 @@ class PairsExpression(Expression):
         return self.token.position
 
 
+class NullLiteral(Expression):
+    """空值字面量节点"""
+    def __init__(self, token: Token = None):
+        self.token = token
+        """'NULL' 词法单元"""
+    
+    def TokenLiteral(self) -> str:
+        return self.token.literal
+    
+    def tostring(self) -> str:
+        return "null"
+    
+    def TokenPos(self) -> Position:
+        return self.token.position
+
+
 # ========== statement ==========
 
 class ExpressionStatement(Statement):

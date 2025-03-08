@@ -67,6 +67,7 @@ class Parser():
         self.next_token()
         self.next_token()
         # 注册表达式解析函数
+        # nuds
         self.register_nuds(TokenType.IDENT,     self.parse_identifier)
         self.register_nuds(TokenType.INT,       self.parse_integer)
         self.register_nuds(TokenType.MINUS,     self.parse_prefix_expression)
@@ -79,6 +80,8 @@ class Parser():
         self.register_nuds(TokenType.STRING,    self.parse_string)
         self.register_nuds(TokenType.LBRACKET,  self.parse_array)
         self.register_nuds(TokenType.LBRACE,    self.parse_hash_expression)
+        self.register_nuds(TokenType.NULL,      self.parse_null)
+        # leds
         self.register_leds(TokenType.PLUS,      self.parse_infix_expression)
         self.register_leds(TokenType.MINUS,     self.parse_infix_expression)
         self.register_leds(TokenType.SLASH,     self.parse_infix_expression)
@@ -481,3 +484,8 @@ class Parser():
         self.next_token()
         exp.value = self.parse_expression(ExpLevel.LOWEST)
         return exp
+
+
+    def parse_null(self) -> ast.Expression:
+        """解析空值字面量"""
+        return ast.NullLiteral(self.cur_tok)

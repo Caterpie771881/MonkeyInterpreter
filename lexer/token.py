@@ -39,6 +39,7 @@ class TokenType(Enum):
     ELSE = 'ELSE'
     RETURN = 'RETURN'
     IMPORT = 'IMPORT'
+    NULL = 'NULL'
 
 
 class Position():
@@ -68,6 +69,7 @@ keywords: dict[str, TokenType] = {
     'else':     TokenType.ELSE,
     'return':   TokenType.RETURN,
     'import':   TokenType.IMPORT,
+    'null':     TokenType.NULL,
 }
 
 
