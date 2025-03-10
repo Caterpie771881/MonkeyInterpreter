@@ -34,6 +34,7 @@ class ObjectType(Enum):
     ARRAY_OBJ           = "ARRAY"
     HASH_OBJ            = "HASH"
     HASHPAIR_OBJ        = "HASHPAIR"
+    MODULE_OBJ          = "MODULE_OBJ"
 
 
 class MonkeyObj(ABC):
@@ -280,3 +281,22 @@ class Hash(MonkeyObj):
         for p in self.pairs.values():
             pairs.append(p.readable())
         return f"{{{', '.join(pairs)}}}"
+
+
+class Module(MonkeyObj):
+    """模块对象"""
+    def __init__(self, name: str = '', env: Environment = None):
+        self.name = name
+        if env:
+            self.env = env
+        else:
+            self.env: Environment = Environment()
+
+    def type(self) -> ObjectType:
+        return ObjectType.MODULE_OBJ
+    
+    def inspect(self) -> str:
+        return f"<module '{self.name}'>"
+    
+    def readable(self) -> str:
+        return f"<module '{self.name}'>"

@@ -383,6 +383,31 @@ class NullLiteral(Expression):
         return self.token.position
 
 
+class VisitExpression(Expression):
+    """属性访问表达式"""
+    def __init__(
+            self,
+            token: Token = None,
+            left: Expression = None,
+            operator: str = '',
+            right: Identifier = None
+        ):
+        self.token = token
+        """VISIT 词法单元"""
+        self.left = left
+        self.operator = operator
+        self.right = right
+    
+    def TokenLiteral(self) -> str:
+        return self.token.literal
+    
+    def tostring(self) -> str:
+        return f"({self.left.tostring()} {self.operator} {self.right.tostring()})"
+    
+    def TokenPos(self) -> Position:
+        return self.token.position
+
+
 # ========== statement ==========
 
 class ExpressionStatement(Statement):
@@ -476,7 +501,7 @@ class BlockStatement(Statement):
         return self.token.literal
 
     def tostring(self) -> str:
-        return ''.join([stmt.tostring() for stmt in self.statements])
+        return '\n'.join([stmt.tostring() for stmt in self.statements])
 
     def TokenPos(self) -> Position:
         return self.token.position

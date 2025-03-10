@@ -35,5 +35,5 @@ class REPL():
             RPPL.raise_error(p.errors)
             return
         evaluated = evaluator.Eval(program, self.env)
-        if evaluated != None and evaluated != NULL:
+        if evaluated != NULL:
             print(evaluated.inspect())

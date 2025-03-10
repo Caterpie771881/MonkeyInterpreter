@@ -106,7 +106,7 @@ class Lexer():
             case '=':
                 if self.peek_char() == '=':
                     self.read_char()
-                    tok = Token(TokenType.EQ, str(ch) + str(self.__current), pos)
+                    tok = Token(TokenType.EQ, ch + self.__current, pos)
                 else:
                     tok = Token(TokenType.ASSIGN, ch, pos)
             
@@ -114,7 +114,11 @@ class Lexer():
                 tok = Token(TokenType.PLUS, ch, pos)
             
             case '-':
-                tok = Token(TokenType.MINUS, ch, pos)
+                if self.peek_char() == '>':
+                    self.read_char()
+                    tok = Token(TokenType.VISIT, ch + self.__current, pos)
+                else:
+                    tok = Token(TokenType.MINUS, ch, pos)
             
             case '!':
                 if self.peek_char() == '=':

@@ -21,6 +21,7 @@ class TokenType(Enum):
     EQ = '=='
     NOT_EQ = '!='
     COLON = ':'
+    VISIT = '->'
     # 分隔符
     COMMA = ','
     SEMICOLON = ';'

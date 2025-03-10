@@ -16,7 +16,7 @@ class ExpLevel(IntEnum):
     PRODUCT     = 4 # *
     PREFIX      = 5 # -X or !X
     CALL        = 6 # func(X)
-    INDEX       = 7 # array[idx] 
+    INDEX_VISIT = 7 # array[idx] or X->Y
 
 
 token_level: dict[TokenType, ExpLevel] = {
@@ -29,7 +29,8 @@ token_level: dict[TokenType, ExpLevel] = {
     TokenType.SLASH:    ExpLevel.PRODUCT,
     TokenType.ASTERISK: ExpLevel.PRODUCT,
     TokenType.LPAREN:   ExpLevel.CALL,
-    TokenType.LBRACKET: ExpLevel.INDEX,
+    TokenType.LBRACKET: ExpLevel.INDEX_VISIT,
+    TokenType.VISIT:    ExpLevel.INDEX_VISIT,
 }
 """符号的优先级表"""
 
@@ -92,6 +93,7 @@ class Parser():
         self.register_leds(TokenType.GT,        self.parse_infix_expression)
         self.register_leds(TokenType.LPAREN,    self.parse_call_expression)
         self.register_leds(TokenType.LBRACKET,  self.parse_index_expression)
+        self.register_leds(TokenType.VISIT,     self.parse_visit_expression)
 
 
     def register_nuds(self, tt: TokenType, fn: nuds) -> None:
@@ -164,6 +166,8 @@ class Parser():
                 return self.parse_let_statement()
             case TokenType.RETURN:
                 return self.parse_return_statement()
+            case TokenType.IMPORT:
+                return self.parse_import_statement()
             case _:
                 return self.parse_expression_statement()
     
@@ -489,3 +493,36 @@ class Parser():
     def parse_null(self) -> ast.Expression:
         """解析空值字面量"""
         return ast.NullLiteral(self.cur_tok)
+
+
+    def parse_import_statement(self) -> ast.ImportStatement:
+        """解析导入语句节点"""
+        stmt = ast.ImportStatement(self.cur_tok)
+
+        if not self.expect_peek(TokenType.IDENT):
+            return None
+        
+        stmt.module = self.cur_tok.literal
+
+        if self.peek_tok.type == TokenType.SEMICOLON:
+            self.next_token()
+
+        return stmt
+
+
+    def parse_visit_expression(self, left: ast.Expression) -> ast.Expression:
+        """解析属性访问表达式"""
+        exp = ast.VisitExpression(self.cur_tok)
+        exp.left = left
+        exp.operator = self.cur_tok.literal
+
+        level = self.get_current_precedence()
+        self.next_token()
+        right = self.parse_expression(level)
+
+        if not isinstance(right, ast.Identifier):
+            self.recordError(f"expect Identifier, but {right.__class__}")
+            return None
+        exp.right = right
+
+        return exp

@@ -1,4 +1,6 @@
+from lexer import Lexer
 from lexer.token import Position
+from parser import Parser
 from parser import ast
 from evaluator import objsys as obj
 from evaluator.builtins import Builtins
@@ -158,8 +160,30 @@ def Eval(node: ast.Node, env: obj.Environment) -> obj.MonkeyObj:
         case ast.NullLiteral():
             return NULL
 
+        case ast.ImportStatement():
+            return eval_import_statement(node, env)
+
+        case ast.VisitExpression():
+            left = Eval(node.left, env)
+            match left:
+                case obj.Error():
+                    return left
+                case obj.Module():
+                    return (
+                        left.env.get(node.right.value)
+                        or obj.Error(
+                            node.TokenPos(),
+                            f"identifier not found at {left.name}: {node.right.value}"))
+                case _:
+                    return obj.Error(
+                        node.TokenPos(),
+                        f"visit operator not supported: {left.type().value}"
+                    )
+
         case _:
             return obj.Error(node.TokenPos(), f"unsupport ast node: {node.__class__}")
+
+    return NULL
 
 
 def eval_program(
@@ -209,6 +233,33 @@ def eval_pairs_expression(
     value = Eval(pairs.value, env)
 
     return obj.HashPair(key, value)
+
+
+def eval_import_statement(
+        stmt: ast.ImportStatement,
+        env: obj.Environment
+    ) -> obj.MonkeyObj:
+    module_name = stmt.module
+    module_path = f"{module_name}.monkey"
+    module_env = obj.Environment()
+    try:
+        with open(module_path, 'r') as module:
+            code = module.read()
+            p = Parser(Lexer(code))
+            program = p.parse_program()
+            if len(p.errors):
+                return obj.Error(
+                    stmt.TokenPos(),
+                    f"has {len(p.errors)} parser error in module '{module_name}'")
+            load = Eval(program, module_env)
+            if is_error(load):
+                return load
+    except:
+        return obj.Error(
+            stmt.TokenPos(),
+            f"import error, can not load '{stmt.module}'")
+    env.set(module_name, obj.Module(module_name, module_env))
+    return NULL
 
 
 # ========== prefix expression ==========
